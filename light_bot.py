@@ -25,9 +25,12 @@ class LightBot():
         # set all motors as non-compliant
         self.set_compliance(isCompliant=False)
             
-        # # set to base position
+        # set to base position
         self.base_angles = [-14.52, 7.77, 20.67, -63.2, 21.55]
         self.set_joints(self.base_angles)
+        
+        # flash motor LEDs to indicate ready state
+        self.__setup_flash()
     
     
     # GETTERS
@@ -51,8 +54,15 @@ class LightBot():
                     
         # set the angles of the joints on the robot
         pos_dict = {}
-        for i in range(len(angles)):
+        for i in range(len(angles) - 1):
             pos_dict[self.robot.motors[i].name] = angles[i]
+        
+        # check if hand isClosed and set m5
+        if angles[-1] == 1:
+            pos_dict[self.robot.motors[-1].name] = -37.0
+        elif angles[-1] == 0:
+            pos_dict[self.robot.motors[-1].name] = 31.52
+        
         print("Setting to ", pos_dict)
         
         # calculate wait time based on desired speed of robot
@@ -88,6 +98,15 @@ class LightBot():
             if angles[i] < min(limits):
                 print("Lower Limit Set")
                 angles[i] = min(limits)
+    
+    def __setup_flash(self):
+        for i in range(2):
+            for motor in self.robot.motors:
+                motor.led = 'red'
+            time.sleep(0.5)
+            for motor in self.robot.motors:
+                motor.led = 'green'
+            time.sleep(0.5)
                 
         
         
