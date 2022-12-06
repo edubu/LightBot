@@ -12,7 +12,7 @@ def main():
     time.sleep(1)
     try:
         logging.info("Starting movement printing")
-        bot.set_compliance(isCompliant=True)
+        bot.set_motors_compliance([True for i in range(len(bot.motor_names))])
         while(True):
             print(bot.get_joint_angles())
             
