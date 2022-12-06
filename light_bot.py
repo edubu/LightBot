@@ -90,7 +90,7 @@ class LightBot():
         Inputs: list of integer joint angles for each joint
         Returns: True if joint angles were correctly set
     """
-    def set_joints(self, angles: list, speed=180) -> bool:        
+    def set_joint_angles(self, angles: list, speed=180) -> bool:        
         logger.debug("Validating joint positions")
         try:
             self.__validate_joint_angles(angles)
@@ -100,6 +100,12 @@ class LightBot():
         logger.debug("Joint angles validated")
         
         move_joint_uri = '/motors/goto.json' # motor set position endpoint
+        
+        # set angle depending on fist value
+        if angles[-1] == 1:
+            angles[-1] -37.0
+        elif angles[-1] == 0:
+            angles[-1] = 31.52
         
         # set the angles of the joints on the robot
         move_command = {}
