@@ -24,7 +24,7 @@ class LightBot():
         self.set_motors_compliance([False for i in range(len(self.motor_names))])
             
         # set to base position
-        self.base_angles = [-14.52, 7.77, 20.67, -63.2, 21.55]
+        self.base_angles = [0.0, 96.0, 20.67, 20, 21.55]
         self.set_joint_angles(self.base_angles)
         
         # flash motor LEDs to green to indicate ready state

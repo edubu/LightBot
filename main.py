@@ -255,7 +255,6 @@ def run_mp(cam_index1, cam_index2, isWindows):
         min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
     while True:
-        loop_start_time = time.time()
         # read frames from stream
         ret0, frame0 = cap0.read()
         ret1, frame1 = cap1.read()
@@ -328,7 +327,7 @@ def run_mp(cam_index1, cam_index2, isWindows):
 
         if results0.pose_landmarks and results1.pose_landmarks:
             hand = None
-            fist = False
+            fist = True
 
             if results1.right_hand_landmarks:
                 hand = [results1.right_hand_landmarks.landmark[9].x,
@@ -338,13 +337,17 @@ def run_mp(cam_index1, cam_index2, isWindows):
             shoulder_xy, shoulder_yz, elbow_angle, wrist_angle = get_arm_angles(results0.pose_landmarks.landmark,
                                                                                 results1.pose_landmarks.landmark,
                                                                                 hand)
-
+            # elbow_angle = 0
+            # shoulder_yz = 0
+            # shoulder_xy = 0
+            
             # Set lightbot joint angles
             api_start_time = time.time()
-            joint_angles = [shoulder_yz, shoulder_xy,
-                            elbow_angle, wrist_angle, fist]
+            joint_angles = [shoulder_yz, -shoulder_xy + 96,
+                            (elbow_angle - 160), -wrist_angle * 2, fist]
             lightbot.set_joint_angles(joint_angles)
             api_end_time = time.time()
+            print(f"Motor api time: {api_end_time - api_start_time}\n")
 
             cv2.putText(frame0, "right shoulder angle: " + str(shoulder_xy)[0:4],
                         (100, 100),
@@ -397,10 +400,6 @@ def run_mp(cam_index1, cam_index2, isWindows):
         cv2.imshow('cam1', frame1)
         cv2.imshow('cam0', frame0)
 
-        loop_end_time = time.time()
-
-        print(
-            f'Total frame time: {loop_end_time - loop_start_time}: Robot api comm time: {api_end_time - api_start_time}\n')
         if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 
