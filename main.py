@@ -181,7 +181,7 @@ fist_reference_points = [(4, 10), (8, 5), (12, 9), (16, 13), (20, 17)]
 def is_fist(landmarks) -> bool:
     """Returns True if the given hand landmarks represent a fist."""
     for id1, id2 in fist_reference_points:
-        if calculate_distance(landmarks[id1], landmarks[id2]) > 0.1:
+        if calculate_distance(landmarks[id1], landmarks[id2]) > 0.05:
             return False
 
     return True
@@ -229,9 +229,15 @@ def get_arm_angles(landmarks_front, landmarks_right, hand):
 
     return shoulder_xy, shoulder_yz, elbow_angle, wrist_angle
 
+def set_lightbot_angles(lightbot: LightBot, angles: list, status: int):
+    lightbot.set_joint_angles(angles)
+    status = 1
+    
 
 def run_mp(cam_index1, cam_index2, isWindows):
     lightbot = LightBot()
+    
+    api_requests = []
 
     cap0 = None
     cap1 = None
@@ -337,42 +343,51 @@ def run_mp(cam_index1, cam_index2, isWindows):
             shoulder_xy, shoulder_yz, elbow_angle, wrist_angle = get_arm_angles(results0.pose_landmarks.landmark,
                                                                                 results1.pose_landmarks.landmark,
                                                                                 hand)
-            # elbow_angle = 0
-            # shoulder_yz = 0
-            # shoulder_xy = 0
+            #elbow_angle = 180
+            #shoulder_yz = 0
+            #shoulder_xy = 0
+            wrist_angle = 0
             
             # Set lightbot joint angles
-            api_start_time = time.time()
             joint_angles = [shoulder_yz, -shoulder_xy + 96,
-                            (elbow_angle - 160), -wrist_angle * 2, fist]
-            lightbot.set_joint_angles(joint_angles)
-            api_end_time = time.time()
-            print(f"Motor api time: {api_end_time - api_start_time}\n")
-
-            cv2.putText(frame0, "right shoulder angle: " + str(shoulder_xy)[0:4],
+                            (elbow_angle - 80), wrist_angle * 2, fist]
+            
+            # create thread to make an api request
+            status = 0
+            t = threading.Thread(target=set_lightbot_angles, args=[lightbot, joint_angles, status])
+            
+            # add thread to outgoing requests and start thread
+            api_requests.append([t, status])
+            t.start()
+            
+            print(f'api requests pending: {len(api_requests)}')
+            
+            cv2.rectangle(frame0, (50, 110), (600, 80), (0, 0, 0), -1)
+            
+            cv2.putText(frame0, "shoulder_xy: " + str(shoulder_xy)[0:4],
                         (100, 100),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,
-                                                        0, 0), 2, cv2.LINE_AA
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,
+                                                        255, 255), 1, cv2.LINE_AA
                         )
-            cv2.putText(frame0, "right shoulder angle: " + str(shoulder_yz)[0:4],
-                        (100, 200),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,
-                                                        0, 0), 2, cv2.LINE_AA
+            cv2.putText(frame0, "shoulder_yz: " + str(shoulder_yz)[0:4],
+                        (200, 100),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,
+                                                        255, 255), 1, cv2.LINE_AA
                         )
-            cv2.putText(frame0, "right elbow angle: " + str(elbow_angle)[0:4],
-                        (100, 300),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,
-                                                        0, 0), 2, cv2.LINE_AA
+            cv2.putText(frame0, "elbow: " + str(elbow_angle)[0:4],
+                        (300, 100),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,
+                                                        255, 255), 1, cv2.LINE_AA
                         )
-            cv2.putText(frame0, "right wrist angle: " + str(wrist_angle)[0:4],
-                        (100, 400),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,
-                                                        0, 0), 2, cv2.LINE_AA
+            cv2.putText(frame0, "wrist: " + str(wrist_angle)[0:4],
+                        (400, 100),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,
+                                                        255, 255), 1, cv2.LINE_AA
                         )
             cv2.putText(frame0, "fist: " + str(fist),
-                        (100, 500),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,
-                                                        0, 0), 2, cv2.LINE_AA
+                        (500, 100),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,
+                                                        255, 255), 1, cv2.LINE_AA
                         )
 
         # uncomment to draw all landmarks
@@ -397,8 +412,18 @@ def run_mp(cam_index1, cam_index2, isWindows):
         #     landmark_drawing_spec=mp_drawing_styles
         #     .get_default_pose_landmarks_style())
 
+        cv2.namedWindow('cam1', cv2.WINDOW_NORMAL)
+        cv2.namedWindow('cam0', cv2.WINDOW_NORMAL)
         cv2.imshow('cam1', frame1)
         cv2.imshow('cam0', frame0)
+        
+        rate = 10
+        time.sleep(1/float(rate))
+        # clear outgoing requests
+        for i in range(len(api_requests)):
+            if api_requests[i][1] == 1:
+                api_requests[i][0].join()
+                del api_requests[i]
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
             break

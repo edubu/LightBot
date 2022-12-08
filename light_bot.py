@@ -24,7 +24,7 @@ class LightBot():
         self.set_motors_compliance([False for i in range(len(self.motor_names))])
             
         # set to base position
-        self.base_angles = [0.0, 96.0, 20.67, 20, 21.55]
+        self.base_angles = [0.0, 96.0, -90.0, 20.0, 21.55]
         self.set_joint_angles(self.base_angles)
         
         # flash motor LEDs to green to indicate ready state
@@ -103,9 +103,9 @@ class LightBot():
         
         # set angle depending on fist value
         if angles[-1] == 1:
-            angles[-1] -37.0
+            angles[-1] = -37.0
         elif angles[-1] == 0:
-            angles[-1] = 31.52
+            angles[-1] = 28.52
         
         # set the angles of the joints on the robot
         move_command = {}
@@ -115,7 +115,7 @@ class LightBot():
         # calculate wait time based on desired speed of robot
         wait_time = self.__calculate_wait_time(angles, speed=speed)
         move_command['duration'] = str(wait_time)
-        move_command['wait'] = True
+        move_command['wait'] = False
     
         res = requests.post(self.api_url + move_joint_uri, json=move_command)
         
@@ -159,10 +159,12 @@ class LightBot():
         for i, mname in enumerate(self.motor_names):
             limits = self.joint_limits[mname]
             if angles[i] > max(limits):
-                #print("Upper limit set")
+                if mname == 'm3':
+                    print("Elbow Upper limit set")
                 angles[i] = max(limits)
             if angles[i] < min(limits):
-               #print("Lower Limit Set")
+                if mname == 'm3':
+                    print("Elbow Lower limit set")
                 angles[i] = min(limits)
         
     
