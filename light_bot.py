@@ -25,7 +25,7 @@ class LightBot():
             
         # set to base position
         self.base_angles = [-14.52, 7.77, 20.67, -63.2, 21.55]
-        self.set_joints(self.base_angles)
+        self.set_joint_angles(self.base_angles)
         
         # flash motor LEDs to green to indicate ready state
         self.__setup_flash_leds()
@@ -159,10 +159,10 @@ class LightBot():
         for i, mname in enumerate(self.motor_names):
             limits = self.joint_limits[mname]
             if angles[i] > max(limits):
-                print("Upper limit set")
+                #print("Upper limit set")
                 angles[i] = max(limits)
             if angles[i] < min(limits):
-                print("Lower Limit Set")
+               #print("Lower Limit Set")
                 angles[i] = min(limits)
         
     

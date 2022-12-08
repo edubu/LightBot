@@ -220,11 +220,17 @@ def get_arm_angles(landmarks_front, landmarks_right, landmarks_hand):
     return shoulder_xy, shoulder_yz, elbow_angle, wrist_angle
 
 
-def run_mp(cam_index1, cam_index2):
+def run_mp(cam_index1, cam_index2, isWindows):
     lightbot = LightBot()
     
-    cap0 = cv2.VideoCapture(cam_index1, cv2.CAP_DSHOW)
-    cap1 = cv2.VideoCapture(cam_index2, cv2.CAP_DSHOW)
+    cap0 = None
+    cap1 = None
+    if isWindows:
+        cap0 = cv2.VideoCapture(cam_index1, cv2.CAP_DSHOW)
+        cap1 = cv2.VideoCapture(cam_index2, cv2.CAP_DSHOW)
+    else:
+        cap0 = cv2.VideoCapture(cam_index1)
+        cap1 = cv2.VideoCapture(cam_index2)
     caps = [cap0, cap1]
 
     # set camera resolution if using webcam to 1280x720. Any bigger will cause some lag for hand detection
@@ -237,6 +243,7 @@ def run_mp(cam_index1, cam_index2):
     pose1 = mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
     while True:
+        loop_start_time = time.time()
         # read frames from stream
         ret0, frame0 = cap0.read()
         ret1, frame1 = cap1.read()
@@ -310,7 +317,10 @@ def run_mp(cam_index1, cam_index2):
             fist = is_fist(results1.right_hand_landmarks.landmark)
             
             # Set lightbot joint angles
+            api_start_time = time.time()
             joint_angles = [shoulder_yz, shoulder_xy, elbow_angle, wrist_angle, fist]
+            lightbot.set_joint_angles(joint_angles)
+            api_end_time = time.time()
 
             cv2.putText(frame0, "right shoulder angle: " + str(shoulder_xy)[0:4],
                         (100, 100),
@@ -357,7 +367,10 @@ def run_mp(cam_index1, cam_index2):
 
         cv2.imshow('cam1', frame1)
         cv2.imshow('cam0', frame0)
-
+        
+        loop_end_time = time.time()
+        
+        print(f'Total frame time: {loop_end_time - loop_start_time}: Robot api comm time: {api_end_time - api_start_time}\n')
         if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 
@@ -367,4 +380,4 @@ def run_mp(cam_index1, cam_index2):
 
 
 if __name__ == "__main__":
-    run_mp(0, 1)
+    run_mp(0, 2, isWindows=False)
